@@ -3,11 +3,15 @@ const mongoose = require('mongoose')
 require('dotenv').config();
 const connectDB = require('./config/database');
 const User = require('./models/User');
-const bcrypt = require('bcrypt')
+const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken')
+const cookieParser = require('cookie-parser')
+const auth = require('./middleware/auth')
 
 const app = express()
 
 app.use(express.json())
+app.use(cookieParser())
 
 app.post('/signup', async (req, res) => {
     try {
@@ -71,16 +75,19 @@ app.post('/login', async (req, res) => {
             res.status(400).json({ message: 'User does not exist! Please Sign Up!' })
         }
 
-        const isPasswordValid = await bcrypt.compare(
-            password,
-            user.password
-        )
-
-        if (!isPasswordValid) {
-            res.status(400).json({
+        if (!user.validatePassword(password)) {
+            return res.status(400).json({
                 message: 'Invalid Credetials!'
             })
         }
+
+        const token = await user.getJWT()
+
+        res.cookie('token', token, {
+            httpOnly: true,
+            sameSite: 'strict',
+            maxAge: 24 * 60 * 60 * 1000
+        })
 
         res.status(200).json({
             message: 'Login successful'
@@ -92,6 +99,14 @@ app.post('/login', async (req, res) => {
         })
     }
 
+})
+
+app.post('/getUserInfo', auth, async (req, res) => {
+    const user = await User.findById(
+        req.user.userId
+    ).select('-password')
+    
+    res.status(200).json(user)
 })
 
 connectDB().then(() => {

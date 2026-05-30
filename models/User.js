@@ -24,7 +24,7 @@ const userSchema = new Schema({
         type: String,
         required: true,
         validate: {
-            validator: function(value) {
+            validator: function (value) {
                 return validator.isStrongPassword(value, {
                     minLength: 6,
                     minUppercase: 1,
@@ -55,7 +55,7 @@ const userSchema = new Schema({
         required: true,
         unique: true,
         validate: {
-            validator: function(value) {
+            validator: function (value) {
                 return validator.isMobilePhone(value, 'en-IN')
             },
             message: "Invalid Phone Number"
@@ -64,6 +64,29 @@ const userSchema = new Schema({
 }, {
     timestamps: true
 })
+
+userSchema.methods.getJWT = async () => {
+    const user = this
+
+    const token = await jwt.sign({
+        userId: user._id,
+        email: user.email
+    }, process.env.JWT_SECRET, { expiresIn: '1d' })
+
+    return token;
+}
+
+userSchema.methods.validatePassword = async (passwordEnteredByUser) => {
+    const user = this
+    const hashedPassword = this.password
+
+    const isPasswordValid = await bcrypt.compare(
+        passwordEnteredByUser,
+        hashedPassword
+    )
+
+    return isPasswordValid;
+}
 
 const User = mongoose.model('User', userSchema)
 module.exports = User
