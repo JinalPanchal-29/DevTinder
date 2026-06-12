@@ -65,7 +65,7 @@ const userSchema = new Schema({
     timestamps: true
 })
 
-userSchema.methods.getJWT = async () => {
+userSchema.methods.getJWT = async function() {
     const user = this
 
     const token = await jwt.sign({
@@ -76,7 +76,7 @@ userSchema.methods.getJWT = async () => {
     return token;
 }
 
-userSchema.methods.validatePassword = async (passwordEnteredByUser) => {
+userSchema.methods.validatePassword = async function(passwordEnteredByUser) {
     const user = this
     const hashedPassword = this.password
 
