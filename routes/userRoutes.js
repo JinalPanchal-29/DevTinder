@@ -38,7 +38,7 @@ userRouter.get('/user/connections', auth, async (req, res) => {
             return row.fromUserId
         })
 
-        res.json({ data: matchedUsers })
+        res.status(200).json({ data: matchedUsers })
     } catch (error) {
         res.status(400).json({ message: error.message })
     }
@@ -46,32 +46,34 @@ userRouter.get('/user/connections', auth, async (req, res) => {
 
 userRouter.get('/feed', auth, async (req, res) => {
     try {
-        const loggedInUser = req.user;
+        const loggedInUserId = req.user.userId || req.user._id;
+        if (!loggedInUserId) {
+            return res.status(401).json({ message: 'Invalid user credentials' });
+        }
+
+        const currentUserId = loggedInUserId.toString();
         const connectionRequests = await ConnectionRequest.find({
             $or: [
-                { fromUserId: loggedInUser._id },
-                { toUserId: loggedInUser._id },
+                { fromUserId: currentUserId },
+                { toUserId: currentUserId },
             ]
-        }).select("fromUserId toUserId");
+        }).select('fromUserId toUserId').lean();
 
-        const hideUsers = new Set()
+        const hideUsers = new Set([currentUserId]);
         connectionRequests.forEach((row) => {
-            hideUsers.add(row.fromUserId.toString())
-            hideUsers.add(row.toUserId.toString())
-        })
+            hideUsers.add(row.fromUserId.toString());
+            hideUsers.add(row.toUserId.toString());
+        });
 
         const users = await User.find({
-            $and: [
-                { _id: { $nin: Array.from(hideUsers) } },
-                { _id: { $ne: loggedInUser._id } }
-            ]
-        }).select("firstName lastName userName age gender about skills imageUrl")
+            _id: { $nin: Array.from(hideUsers) }
+        }).select('firstName lastName userName age gender about skills imageUrl');
 
-        res.send(users)
+        res.status(200).json({ data: users });
 
     } catch (error) {
-        res.status(400).json({ message: error.message })
+        res.status(400).json({ message: error.message });
     }
-})
+});
 
 module.exports = userRouter
