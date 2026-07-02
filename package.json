@@ -1,7 +1,7 @@
 {
-  "name": "devtinder-backend",
+  "name": "devconnect-backend",
   "version": "1.0.0",
-  "description": "Tinder for Developers",
+  "description": "Connecting platform for Developers",
   "main": "index.js",
   "scripts": {
     "dev": "nodemon server.js",
